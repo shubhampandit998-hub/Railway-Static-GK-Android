@@ -1,0 +1,26 @@
+workflows:
+  railway-static-gk-android:
+    name: Railway Static GK Android
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      java: 17
+      vars:
+        PACKAGE_NAME: "in.railway.staticgk"
+    scripts:
+      - name: Verify bundled quiz HTML
+        script: |
+          test -s app/src/main/assets/index.html
+          grep -qi '<html' app/src/main/assets/index.html
+      - name: Generate Gradle wrapper
+        script: |
+          gradle --version
+          gradle wrapper --gradle-version 8.9
+      - name: Build release APK and Android App Bundle
+        script: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon clean assembleRelease bundleRelease
+    artifacts:
+      - app/build/outputs/apk/release/*.apk
+      - app/build/outputs/bundle/release/*.aab
+      - app/build/outputs/mapping/release/mapping.txt
