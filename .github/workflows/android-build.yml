@@ -48,7 +48,28 @@ jobs:
               html_path.write_text(html, encoding="utf-8")
           assert "modern-enhancements.css" in html
           assert "restoreResumePosition();" in html, "Existing quiz script unexpectedly missing"
-          print("Original quiz HTML retained; responsive styling linked; existing quiz navigation preserved.")
+          # Fix tap-through: defer revealing hidden quiz UI until the second tap's click has finished.
+          # This prevents the same double-tap from landing on an option (often D) revealed underneath.
+          marker = "document.addEventListener(\"pointerdown\",revealQuizOptionsOutsideAttemptPanel,true);"
+          if marker in html and "outsideRevealDeferredFix" not in html:
+              html = html.replace(marker, """
+          document.addEventListener("pointerdown", function outsideRevealDeferredFix(event) {
+            if (!document.body.classList.contains("attempt-focus")) return;
+            const target = event.target;
+            if (target && target.closest && (target.closest("#examTagToggle") || target.closest("#main .card"))) return;
+            const now = Date.now();
+            if (window.__outsideRevealFirstTapAt && now - window.__outsideRevealFirstTapAt <= 700) {
+              window.__outsideRevealFirstTapAt = 0;
+              // Wait until the current touch/click sequence is complete before changing layout.
+              window.setTimeout(function() { document.body.classList.remove("attempt-focus"); }, 350);
+            } else {
+              window.__outsideRevealFirstTapAt = now;
+            }
+          }, true);
+          """)
+              html_path.write_text(html, encoding="utf-8")
+          print("Original quiz data preserved; responsive styling and deferred double-tap reveal applied.")
+
           print(f"HTML bytes: {html_path.stat().st_size}; CSS bytes: {css_path.stat().st_size}")
           PY
 
