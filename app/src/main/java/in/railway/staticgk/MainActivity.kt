@@ -4,11 +4,10 @@ import android.app.Activity
 import android.os.Bundle
 import android.view.View
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.webkit.WebSettings
-import android.webkit.WebResourceRequest
-import android.widget.Toast
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
@@ -20,7 +19,6 @@ class MainActivity : Activity() {
         webView = WebView(this)
         webView.setBackgroundColor(android.graphics.Color.WHITE)
         webView.visibility = View.VISIBLE
-
         webView.settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
@@ -37,7 +35,6 @@ class MainActivity : Activity() {
                 view: WebView?,
                 request: WebResourceRequest?
             ): Boolean {
-                // Keep app navigation inside the bundled quiz; external links are not launched.
                 return request?.url?.scheme != "file"
             }
         }
