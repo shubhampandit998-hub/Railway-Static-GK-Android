@@ -114,3 +114,61 @@ body.dark-mode .option { background: color-mix(in srgb, var(--card) 90%, var(--a
   html { scroll-behavior: auto; }
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+
+/* Additional UI polish: visual-only overrides; no quiz logic or question data changed. */
+:where(button, .option, select, input[type="checkbox"], input[type="radio"]) {
+  touch-action: manipulation;
+}
+button {
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 20%, var(--border, #dbe3ef));
+  padding: 10px 14px;
+  cursor: pointer;
+}
+button:not(:disabled):hover {
+  filter: brightness(.98);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, .09);
+}
+button:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+.option {
+  display: block;
+  width: 100%;
+  text-align: start;
+  color: inherit;
+  background: var(--card, #fff);
+}
+.option:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent, #2563eb) 50%, transparent);
+  outline-offset: 2px;
+}
+img, video, canvas, iframe {
+  max-width: 100%;
+}
+table {
+  max-width: 100%;
+  border-collapse: collapse;
+}
+th, td {
+  padding: 9px 10px;
+  border: 1px solid var(--border, #dbe3ef);
+  vertical-align: top;
+}
+a {
+  text-underline-offset: 3px;
+}
+:where(.q, .question, .explanation-box, label, .option) {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 380px) {
+  #container { width: calc(100% - 10px); }
+  #stats, .stats { gap: 6px; }
+  .stat { padding: 8px 6px; }
+  .q { font-size: 17px; }
+  button { padding-inline: 10px; }
+}
+@media (hover: none) {
+  button:not(:disabled):hover { box-shadow: none; }
+}
