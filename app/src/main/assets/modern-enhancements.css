@@ -172,3 +172,23 @@ a {
 @media (hover: none) {
   button:not(:disabled):hover { box-shadow: none; }
 }
+
+
+/* Mobile: keep the attempting/quick-navigation panel centered in the visible screen. */
+@media (max-width: 600px) {
+  #panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100vw - 24px);
+    max-width: 420px;
+    max-height: min(72dvh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 1000;
+    margin: 0;
+    box-sizing: border-box;
+    box-shadow: 0 18px 48px rgba(5, 15, 35, .28);
+  }
+}
