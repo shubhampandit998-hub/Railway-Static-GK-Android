@@ -1,0 +1,50 @@
+name: Build Railway Static GK Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - '*.gradle'
+      - 'settings.gradle'
+      - '.github/workflows/android-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Verify bundled quiz HTML
+        run: |
+          test -s app/src/main/assets/index.html
+          grep -qi '<html' app/src/main/assets/index.html
+          echo "Quiz HTML exists; size:"
+          wc -c app/src/main/assets/index.html
+
+      - name: Build release APK
+        run: gradle --no-daemon clean assembleRelease
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: railway-static-gk-release-apk
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14
