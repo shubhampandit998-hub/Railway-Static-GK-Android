@@ -38,17 +38,23 @@ jobs:
           import re
           html_path = Path("app/src/main/assets/index.html")
           css_path = Path("app/src/main/assets/modern-enhancements.css")
+          focus_js_path = Path("app/src/main/assets/next-focus-mode.js")
           html = html_path.read_text(encoding="utf-8")
           assert html.strip().lower().startswith("<!doctype html"), "Quiz HTML missing"
           assert css_path.is_file() and css_path.stat().st_size > 0, "Modern CSS missing"
+          assert focus_js_path.is_file() and focus_js_path.stat().st_size > 0, "Next focus script missing"
           assert html.lower().count("</head>") == 1, "Unexpected HTML head structure"
           # Presentation-only change: preserve every existing question, explanation and script.
           if "modern-enhancements.css" not in html:
               html = re.sub(r"</head>", ('  <link rel="stylesheet" href="modern-enhancements.css">' + chr(10) + '</head>'), html, count=1, flags=re.I)
               html_path.write_text(html, encoding="utf-8")
+          if "next-focus-mode.js" not in html:
+              html = re.sub(r"</body>", ('  <script src="next-focus-mode.js"></script>' + chr(10) + '</body>'), html, count=1, flags=re.I)
+              html_path.write_text(html, encoding="utf-8")
           assert "modern-enhancements.css" in html
+          assert "next-focus-mode.js" in html
           assert "restoreResumePosition();" in html, "Existing quiz script unexpectedly missing"
-          print("Original quiz HTML retained; modern responsive styling linked.")
+          print("Original quiz HTML retained; responsive styling and Next focus mode linked.")
           print(f"HTML bytes: {html_path.stat().st_size}; CSS bytes: {css_path.stat().st_size}")
           PY
 
