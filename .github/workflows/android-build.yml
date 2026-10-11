@@ -44,7 +44,7 @@ jobs:
           assert html.lower().count("</head>") == 1, "Unexpected HTML head structure"
           # Presentation-only change: preserve every existing question, explanation and script.
           if "modern-enhancements.css" not in html:
-              html = re.sub(r"</head>", '  <link rel="stylesheet" href="modern-enhancements.css">\\n</head>', html, count=1, flags=re.I)
+              html = re.sub(r"</head>", ('  <link rel="stylesheet" href="modern-enhancements.css">' + chr(10) + '</head>'), html, count=1, flags=re.I)
               html_path.write_text(html, encoding="utf-8")
           assert "modern-enhancements.css" in html
           assert "restoreResumePosition();" in html, "Existing quiz script unexpectedly missing"
