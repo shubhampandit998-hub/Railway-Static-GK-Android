@@ -192,3 +192,8 @@ a {
     box-shadow: 0 18px 48px rgba(5, 15, 35, .28);
   }
 }
+
+
+/* Focus mode hides non-essential page content after Next is pressed. */
+[data-next-focus-hidden="1"] { display: none !important; }
+body.next-focus-mode { overflow-x: hidden; }
