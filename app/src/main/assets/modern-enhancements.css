@@ -194,6 +194,23 @@ a {
 }
 
 
-/* Focus mode hides non-essential page content after Next is pressed. */
-[data-next-focus-hidden="1"] { display: none !important; }
-body.next-focus-mode { overflow-x: hidden; }
+
+
+/* Center the attempting/quick-navigation section without hiding quiz content. */
+@media (max-width: 600px) {
+  #panel, .attempting-panel, .attempting-section, [id*="attempting" i], [class*="attempting" i] {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(100vw - 24px);
+    max-width: 420px;
+    max-height: 72vh;
+    max-height: 72dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 1000;
+    margin: 0;
+    box-sizing: border-box;
+  }
+}
