@@ -127,4 +127,37 @@
     attributes: true,
     attributeFilter: ["hidden", "style", "aria-hidden", "class"]
   });
+
+  /* Make navigation controls usable on the first tap.
+     The original focus handler required two taps outside the question card,
+     which made Home and Practice Mode appear unresponsive. */
+  if (typeof window.revealQuizOptionsOutsideAttemptPanel === "function") {
+    document.removeEventListener(
+      "pointerdown",
+      window.revealQuizOptionsOutsideAttemptPanel,
+      true
+    );
+  }
+
+  document.addEventListener("pointerdown", function (event) {
+    var target = event.target;
+    if (target && target.closest && target.closest("#main .card")) return;
+    if (target && target.closest && target.closest("#examTagToggle")) return;
+    outsideRevealFirstTapAt = 0;
+    document.body.classList.remove("attempt-focus");
+  }, true);
+
+  /* Home always returns to the first quiz set and exits any active focus UI. */
+  if (typeof window.goHome === "function" && !window.goHome.__singleTapFixed) {
+    var originalGoHome = window.goHome;
+    var fixedGoHome = function () {
+      if (typeof window.stopPracticeTimer === "function") {
+        window.stopPracticeTimer();
+      }
+      document.body.classList.remove("attempt-focus");
+      return originalGoHome.apply(this, arguments);
+    };
+    fixedGoHome.__singleTapFixed = true;
+    window.goHome = fixedGoHome;
+  }
 })();
