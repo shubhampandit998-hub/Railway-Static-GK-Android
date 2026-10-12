@@ -77,6 +77,43 @@
     scheduleCheck();
   }
 
+  /* Disable automatic question advance after an answer is selected.
+     Manual Previous/Next controls remain available. */
+  var answerClickAt = 0;
+  var wrappedFunctions = new WeakSet();
+
+  function wrapAdvanceFunctions() {
+    Object.keys(window).forEach(function (name) {
+      if (!/next|advance|loadquestion|showquestion|gotoquestion|movequestion/i.test(name)) return;
+      var fn;
+      try { fn = window[name]; } catch (e) { return; }
+      if (typeof fn !== "function" || wrappedFunctions.has(fn)) return;
+
+      var wrapped = function () {
+        if (Date.now() - answerClickAt < 500) return;
+        return fn.apply(this, arguments);
+      };
+      try {
+        window[name] = wrapped;
+        wrappedFunctions.add(wrapped);
+      } catch (e) {}
+    });
+  }
+
+  document.addEventListener("click", function (event) {
+    var target = event.target && event.target.closest
+      ? event.target.closest(".option, [class*='option'], [data-option], label")
+      : null;
+    if (!target) return;
+    answerClickAt = Date.now();
+    wrapAdvanceFunctions();
+  }, true);
+
+  /* Some quiz scripts define navigation functions after page load. */
+  wrapAdvanceFunctions();
+  var functionWatcher = new MutationObserver(wrapAdvanceFunctions);
+  functionWatcher.observe(document.documentElement, { childList: true, subtree: true });
+
   /* Re-check after quiz navigation or any panel re-render. */
   var observer = new MutationObserver(scheduleCheck);
   observer.observe(document.documentElement, {
