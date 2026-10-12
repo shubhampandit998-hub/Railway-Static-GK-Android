@@ -90,10 +90,14 @@
       window.setTimeout = function (callback, delay) {
         if (typeof callback === "function") {
           var source = Function.prototype.toString.call(callback);
-          var advancesQuestion = /currentQuestion\s*\+\+/.test(source) ||
-            /nextSet\s*\\(/.test(source);
-          var belongsToQuestionAdvance = /render(?:Saved|Wrong|AllWrong)?\s*\\(/.test(source);
-          if (advancesQuestion && belongsToQuestionAdvance) {
+          var advancesQuestion =
+            /currentQuestion\s*(?:\+\+|=\s*currentQuestion\s*\+\s*1)/i.test(source) ||
+            /(?:nextSet|nextQuestion|goToNextQuestion|advanceQuestion)\s*\(/i.test(source) ||
+            /currentQuestion\s*\+\s*\+/.test(source);
+          var rendersQuestionAfterAdvance =
+            /render(?:Saved|Wrong|AllWrong)?\s*\(/i.test(source) ||
+            /showQuestion|loadQuestion/i.test(source);
+          if (advancesQuestion || (rendersQuestionAfterAdvance && /questionIndex|currentQuestion|nextSet/i.test(source))) {
             return 0;
           }
         }
