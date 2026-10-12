@@ -158,3 +158,11 @@ body.dark-mode #main .rsgk-option-selected {
 #main [class~="option"] {
   font-weight: 700 !important;
 }
+
+
+/* Keep Home and Practice Mode reachable with one tap during question focus. */
+body.attempt-focus .bottomnav {
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
