@@ -1,9 +1,8 @@
-/* Keep existing Save/Bookmark control visible and prevent option taps from
-   accidentally triggering navigation. Quiz data and answer evaluation stay intact. */
+/* Keep the existing Save/Bookmark control visible across question renders.
+   Do not modify MCQ click handlers, answer evaluation, or quiz data. */
 (function () {
   "use strict";
 
-  var optionSelector = "#main label.option, #main .option, #main .answer-option, #main .choice, #main .option-item, #main .answer-choice, #main [class~='option']";
   var saveSelector = "button, a, [role='button'], input[type='button'], input[type='submit']";
 
   function labelOf(el) {
@@ -25,26 +24,13 @@
     });
   }
 
-  function preventAccidentalAutoSkip(event) {
-    var target = event.target;
-    if (!target || !target.closest) return;
-    var option = target.closest(optionSelector);
-    if (!option) return;
-
-    /* Stop propagation beyond the option container only; allow the option's own
-       click handler and default radio/checkbox behavior to execute. */
-    event.stopPropagation();
-  }
-
-  document.addEventListener("click", preventAccidentalAutoSkip, true);
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", ensureSaveVisible);
   } else {
     ensureSaveVisible();
   }
 
-  /* Keep the original Save control visible after each question/panel render. */
+  /* Re-apply visibility when the app redraws the question or attempting panel. */
   var observer = new MutationObserver(ensureSaveVisible);
   observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "style", "aria-hidden"] });
 })();
