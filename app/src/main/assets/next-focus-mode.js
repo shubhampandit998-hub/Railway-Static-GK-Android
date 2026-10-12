@@ -1,4 +1,4 @@
-/* Focus mode for Next/Previous; preserves quiz data and existing handlers. */
+/* Focus mode for Next/Previous; avoids repeated whole-page scans on startup. */
 (function () {
   "use strict";
   var controlPattern = /^(previous|prev|next|explanation|show|hide|show explanation|hide explanation|exam tag|show exam tag|hide exam tag|save|saved)$/i;
@@ -12,12 +12,6 @@
     if (!el || !el.matches || !el.matches("button, a, [role='button'], input[type='button'], input[type='submit']")) return false;
     var label = labelOf(el);
     return controlPattern.test(label) || /^(previous|prev|next|explanation|exam tag|save)\b/i.test(label);
-  }
-  function isAttemptPanel(el) {
-    if (!el || !el.matches || el === document.body) return false;
-    if (el.matches(panelSelectors)) return true;
-    var txt = (el.innerText || "").replace(/\s+/g, " ").trim();
-    return txt.length < 1600 && /attempting/i.test(txt) && /\d/.test(txt);
   }
   function keepWithAncestors(el, keep, root) {
     for (var n = el; n && n !== root.parentElement; n = n.parentElement) {
@@ -36,13 +30,13 @@
       document.head.appendChild(style);
     }
     var keep = new Set();
-    Array.from(root.querySelectorAll("*")).forEach(function (el) {
-      if (isAttemptPanel(el) || isKeptControl(el)) keepWithAncestors(el, keep, root);
-      if (el.matches && (el.matches(".explanation-box, [id*='explanation' i], [class*='explanation' i]"))) {
-        // Preserve explanation content so the existing show/hide button continues to work.
-        keepWithAncestors(el, keep, root);
-      }
-    });
+    Array.from(root.querySelectorAll("button, a, [role='button'], input[type='button'], input[type='submit'], .explanation-box, [id*='explanation' i], [class*='explanation' i], " + panelSelectors))
+      .forEach(function (el) {
+        if (isKeptControl(el) || el.matches(panelSelectors) ||
+            el.matches(".explanation-box, [id*='explanation' i], [class*='explanation' i]")) {
+          keepWithAncestors(el, keep, root);
+        }
+      });
     if (!keep.size) return;
     root.classList.add("next-focus-mode");
     function prune(parent) {
@@ -65,13 +59,8 @@
       return el !== document.body && (el.innerText || "").length < 5000;
     });
     candidates.sort(function (a, b) { return (a.innerText || "").length - (b.innerText || "").length; });
-    if (candidates.length) return candidates[0];
-    return Array.from(document.querySelectorAll("section, aside, div")).filter(function (el) {
-      var txt = (el.innerText || "").replace(/\s+/g, " ").trim();
-      return el !== document.body && txt.length > 0 && txt.length < 900 && /attempting/i.test(txt) && /\d/.test(txt);
-    }).sort(function (a, b) { return (a.innerText || "").length - (b.innerText || "").length; })[0] || null;
+    return candidates[0] || null;
   }
-
   function addSaveButton() {
     var panel = findAttemptPanel();
     if (!panel || panel.querySelector("#attemptingPanelSaveButton")) return;
@@ -117,11 +106,6 @@
     }
   }, true);
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", addSaveButton, { once: true });
-  } else {
-    addSaveButton();
-  }
+  // Do not scan the entire quiz DOM during startup; add the button after page load.
   window.addEventListener("load", addSaveButton, { once: true });
-  new MutationObserver(function () { addSaveButton(); }).observe(document.documentElement, { childList: true, subtree: true });
 })();
