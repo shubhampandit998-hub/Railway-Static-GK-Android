@@ -149,3 +149,12 @@ body.dark-mode #main .rsgk-option-selected {
   color: #eff6ff !important;
   border-color: #93c5fd !important;
 }
+
+
+/* Make every MCQ answer option bold without changing quiz behavior. */
+#main .option,
+#main label.option,
+#main button.option,
+#main [class~="option"] {
+  font-weight: 700 !important;
+}
