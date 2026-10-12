@@ -1,60 +1,50 @@
-/* UI-only improvements: show the user's selected MCQ option and place an existing
-   Saved Questions navigation control in the question attempting panel when present.
-   Do not change question data, answers, scoring, or existing control behavior. */
+/* Keep existing Save/Bookmark control visible and prevent option taps from
+   accidentally triggering navigation. Quiz data and answer evaluation stay intact. */
 (function () {
   "use strict";
 
-  var selectedClass = "rsgk-option-selected";
   var optionSelector = "#main label.option, #main .option, #main .answer-option, #main .choice, #main .option-item, #main .answer-choice, #main [class~='option']";
+  var saveSelector = "button, a, [role='button'], input[type='button'], input[type='submit']";
 
-  function markSelectedOption(event) {
-    var option = event.target && event.target.closest ? event.target.closest(optionSelector) : null;
+  function labelOf(el) {
+    return (el.innerText || el.value || el.getAttribute("aria-label") ||
+      el.getAttribute("title") || el.getAttribute("data-title") || "").replace(/\s+/g, " ").trim();
+  }
+
+  function ensureSaveVisible() {
+    document.querySelectorAll(saveSelector).forEach(function (el) {
+      var label = labelOf(el);
+      var isSave = /save|saved|bookmark|favourite|favorite|☆|★|⭐|\*/i.test(label);
+      if (!isSave) return;
+      el.hidden = false;
+      el.removeAttribute("hidden");
+      el.removeAttribute("aria-hidden");
+      el.style.setProperty("display", "inline-flex", "important");
+      el.style.setProperty("visibility", "visible", "important");
+      el.style.setProperty("opacity", "1", "important");
+    });
+  }
+
+  function preventAccidentalAutoSkip(event) {
+    var target = event.target;
+    if (!target || !target.closest) return;
+    var option = target.closest(optionSelector);
     if (!option) return;
 
-    var root = option.closest("#main");
-    if (!root) return;
-
-    /* Only visually mark the tapped choice; leave the quiz's own answer logic intact. */
-    root.querySelectorAll(optionSelector + "." + selectedClass).forEach(function (el) {
-      el.classList.remove(selectedClass);
-    });
-    option.classList.add(selectedClass);
+    /* Stop propagation beyond the option container only; allow the option's own
+       click handler and default radio/checkbox behavior to execute. */
+    event.stopPropagation();
   }
 
-  function moveSavedQuestionsControl() {
-    var nav = document.querySelector("#main .question-nav, #main .attempting-panel, #main #attemptingPanel, #main .attempting");
-    if (!nav) return;
-
-    var candidates = Array.from(document.querySelectorAll("button, a, [role='button']"));
-    var savedControl = candidates.find(function (el) {
-      if (nav.contains(el)) return false;
-      var label = (el.innerText || el.getAttribute("aria-label") || el.getAttribute("title") || "")
-        .replace(/\s+/g, " ").trim();
-      return /^(?:saved questions|saved question|view saved questions|my saved questions)$/i.test(label);
-    });
-
-    /* Move the existing control instead of creating a duplicate, preserving its listeners. */
-    if (savedControl) nav.appendChild(savedControl);
-  }
-
-  document.addEventListener("click", markSelectedOption, true);
-  document.addEventListener("change", function (event) {
-    var input = event.target;
-    if (!input || !input.matches || !input.matches("#main input[type='radio'], #main input[type='checkbox']")) return;
-    var label = input.closest("label") || (input.id ? document.querySelector('label[for="' + input.id.replace(/"/g, '\\"') + '"]') : null);
-    if (label) {
-      var root = label.closest("#main");
-      if (root) root.querySelectorAll(optionSelector + "." + selectedClass).forEach(function (el) { el.classList.remove(selectedClass); });
-      label.classList.add(selectedClass);
-    }
-  }, true);
+  document.addEventListener("click", preventAccidentalAutoSkip, true);
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", moveSavedQuestionsControl);
+    document.addEventListener("DOMContentLoaded", ensureSaveVisible);
   } else {
-    moveSavedQuestionsControl();
+    ensureSaveVisible();
   }
-  /* The question panel is re-rendered during navigation, so re-check after UI updates. */
-  var observer = new MutationObserver(function () { moveSavedQuestionsControl(); });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+
+  /* Keep the original Save control visible after each question/panel render. */
+  var observer = new MutationObserver(ensureSaveVisible);
+  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "style", "aria-hidden"] });
 })();
