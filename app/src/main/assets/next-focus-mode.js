@@ -68,14 +68,14 @@
     if (!control) return;
 
     var label = (control.innerText || control.value || control.getAttribute("aria-label") ||
-      control.getAttribute("title") || "").replace(/\\s+/g, " ").trim();
+      control.getAttribute("title") || "").replace(/\s+/g, " ").trim();
 
     /* Exact labels only: do not activate from arbitrary text containing 'Next'. */
-    if (/^next(?:\\s+question)?$/i.test(label)) {
+    if (/^next(?:\s+question)?$/i.test(label)) {
       hideOptions();
       window.setTimeout(hideOptions, 0);
       window.setTimeout(hideOptions, 80);
-    } else if (/^(?:previous|prev)(?:\\s+question)?$/i.test(label)) {
+    } else if (/^(?:previous|prev)(?:\s+question)?$/i.test(label)) {
       restoreOptionsForPrevious();
     }
   }
