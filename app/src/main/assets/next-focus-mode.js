@@ -77,42 +77,43 @@
     scheduleCheck();
   }
 
-  /* Disable automatic question advance after an answer is selected.
-     Manual Previous/Next controls remain available. */
-  var answerClickAt = 0;
-  var wrappedFunctions = new WeakSet();
+  /* Disable only the auto-advance timers created inside the quiz answer handler.
+     The original answer handler still records answers, scores, and feedback.
+     Manual Next/Previous buttons are not intercepted. */
+  function disableAnswerAutoAdvance() {
+    if (typeof window.answer !== "function" || window.answer.__manualNextOnly) return;
 
-  function wrapAdvanceFunctions() {
-    Object.keys(window).forEach(function (name) {
-      if (!/next|advance|loadquestion|showquestion|gotoquestion|movequestion/i.test(name)) return;
-      var fn;
-      try { fn = window[name]; } catch (e) { return; }
-      if (typeof fn !== "function" || wrappedFunctions.has(fn)) return;
+    var originalAnswer = window.answer;
+    var wrappedAnswer = function () {
+      var originalSetTimeout = window.setTimeout;
 
-      var wrapped = function () {
-        if (Date.now() - answerClickAt < 500) return;
-        return fn.apply(this, arguments);
+      window.setTimeout = function (callback, delay) {
+        if (typeof callback === "function") {
+          var source = Function.prototype.toString.call(callback);
+          var advancesQuestion = /currentQuestion\\s*\\+\\+/.test(source) ||
+            /nextSet\\s*\\(/.test(source);
+          var belongsToQuestionAdvance = /render(?:Saved|Wrong|AllWrong)?\\s*\\(/.test(source);
+          if (advancesQuestion && belongsToQuestionAdvance) {
+            return 0;
+          }
+        }
+        return originalSetTimeout.apply(window, arguments);
       };
+
       try {
-        window[name] = wrapped;
-        wrappedFunctions.add(wrapped);
-      } catch (e) {}
-    });
+        return originalAnswer.apply(this, arguments);
+      } finally {
+        window.setTimeout = originalSetTimeout;
+      }
+    };
+
+    wrappedAnswer.__manualNextOnly = true;
+    window.answer = wrappedAnswer;
   }
 
-  document.addEventListener("click", function (event) {
-    var target = event.target && event.target.closest
-      ? event.target.closest(".option, [class*='option'], [data-option], label")
-      : null;
-    if (!target) return;
-    answerClickAt = Date.now();
-    wrapAdvanceFunctions();
-  }, true);
-
-  /* Some quiz scripts define navigation functions after page load. */
-  wrapAdvanceFunctions();
-  var functionWatcher = new MutationObserver(wrapAdvanceFunctions);
-  functionWatcher.observe(document.documentElement, { childList: true, subtree: true });
+  /* This script is loaded after the quiz script; retry after DOM changes in case
+     the page replaces the answer handler. */
+  disableAnswerAutoAdvance();
 
   /* Re-check after quiz navigation or any panel re-render. */
   var observer = new MutationObserver(scheduleCheck);
