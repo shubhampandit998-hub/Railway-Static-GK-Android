@@ -147,6 +147,33 @@
     document.body.classList.remove("attempt-focus");
   }, true);
 
+  /* Save a Practice answer without replacing the whole question DOM.
+     This keeps the selected radio stable and avoids scroll/focus jumps on touch. */
+  if (typeof window.practiceAnswer === "function" && !window.practiceAnswer.__stablePracticeSelection) {
+    var originalPracticeAnswer = window.practiceAnswer;
+    var stablePracticeAnswer = function (id, val) {
+      if (!practiceSession || practiceSession.submitted) return;
+      practiceSession.answers[id] = val;
+
+      var summary = document.querySelector("#main .progressbar + .small");
+      var total = practiceSession.questions.length;
+      var attempted = Object.keys(practiceSession.answers).length;
+      if (summary) summary.textContent = "Attempted: " + attempted + "/" + total + " • Skip: " + (total - attempted);
+
+      var selector = document.getElementById("practiceQuestionSelect");
+      if (selector) {
+        practiceSession.questions.forEach(function (q, index) {
+          if (selector.options[index]) {
+            selector.options[index].textContent = "Question " + (index + 1) +
+              (practiceSession.answers[q.id] !== undefined ? " — Attempted" : "");
+          }
+        });
+      }
+    };
+    stablePracticeAnswer.__stablePracticeSelection = true;
+    window.practiceAnswer = stablePracticeAnswer;
+  }
+
   /* Home always returns to the first quiz set and exits any active focus UI. */
   if (typeof window.goHome === "function" && !window.goHome.__singleTapFixed) {
     var originalGoHome = window.goHome;
