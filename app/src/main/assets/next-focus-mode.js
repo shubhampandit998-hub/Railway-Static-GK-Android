@@ -90,9 +90,9 @@
       window.setTimeout = function (callback, delay) {
         if (typeof callback === "function") {
           var source = Function.prototype.toString.call(callback);
-          var advancesQuestion = /currentQuestion\\s*\\+\\+/.test(source) ||
-            /nextSet\\s*\\(/.test(source);
-          var belongsToQuestionAdvance = /render(?:Saved|Wrong|AllWrong)?\\s*\\(/.test(source);
+          var advancesQuestion = /currentQuestion\s*\+\+/.test(source) ||
+            /nextSet\s*\\(/.test(source);
+          var belongsToQuestionAdvance = /render(?:Saved|Wrong|AllWrong)?\s*\\(/.test(source);
           if (advancesQuestion && belongsToQuestionAdvance) {
             return 0;
           }
