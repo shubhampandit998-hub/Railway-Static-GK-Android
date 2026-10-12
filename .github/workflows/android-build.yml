@@ -31,50 +31,36 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verify quiz data and apply modern styling
+      - name: Apply UI improvements without changing quiz data
         run: |
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           html_path = Path("app/src/main/assets/index.html")
           css_path = Path("app/src/main/assets/modern-enhancements.css")
+          js_path = Path("app/src/main/assets/next-focus-mode.js")
           html = html_path.read_text(encoding="utf-8")
           assert html.strip().lower().startswith("<!doctype html"), "Quiz HTML missing"
           assert css_path.is_file() and css_path.stat().st_size > 0, "Modern CSS missing"
+          assert js_path.is_file() and js_path.stat().st_size > 0, "Focus-mode JS missing"
           assert html.lower().count("</head>") == 1, "Unexpected HTML head structure"
-          # Presentation-only change: preserve every existing question, explanation and script.
-          if "modern-enhancements.css" not in html:
-              html = re.sub(r"</head>", ('  <link rel="stylesheet" href="modern-enhancements.css">' + chr(10) + '</head>'), html, count=1, flags=re.I)
-              html_path.write_text(html, encoding="utf-8")
-          assert "modern-enhancements.css" in html
-          assert "restoreResumePosition();" in html, "Existing quiz script unexpectedly missing"
-          # Fix tap-through: defer revealing hidden quiz UI until the second tap's click has finished.
-          # This prevents the same double-tap from landing on an option (often D) revealed underneath.
-          marker = "document.addEventListener(\"pointerdown\",revealQuizOptionsOutsideAttemptPanel,true);"
-          if marker in html and "outsideRevealDeferredFix" not in html:
-              html = html.replace(marker, """
-          document.addEventListener("pointerdown", function outsideRevealDeferredFix(event) {
-            if (!document.body.classList.contains("attempt-focus")) return;
-            const target = event.target;
-            if (target && target.closest && (target.closest("#examTagToggle") || target.closest("#main .card"))) return;
-            const now = Date.now();
-            if (window.__outsideRevealFirstTapAt && now - window.__outsideRevealFirstTapAt <= 700) {
-              window.__outsideRevealFirstTapAt = 0;
-              // Wait until the current touch/click sequence is complete before changing layout.
-              window.setTimeout(function() { document.body.classList.remove("attempt-focus"); }, 350);
-            } else {
-              window.__outsideRevealFirstTapAt = now;
-            }
-          }, true);
-          """)
-              html_path.write_text(html, encoding="utf-8")
-          print("Original quiz data preserved; responsive styling and deferred double-tap reveal applied.")
+          assert html.lower().count("</body>") == 1, "Unexpected HTML body structure"
 
-          print(f"HTML bytes: {html_path.stat().st_size}; CSS bytes: {css_path.stat().st_size}")
+          if "modern-enhancements.css" not in html:
+              html = re.sub(r"</head>", '  <link rel="stylesheet" href="modern-enhancements.css">\n</head>', html, count=1, flags=re.I)
+
+          if "next-focus-mode.js" not in html:
+              html = re.sub(r"</body>", '  <script src="next-focus-mode.js"></script>\n</body>', html, count=1, flags=re.I)
+
+          assert "restoreResumePosition();" in html, "Existing quiz script unexpectedly missing"
+          assert "modern-enhancements.css" in html
+          assert "next-focus-mode.js" in html
+          html_path.write_text(html, encoding="utf-8")
+          print("Quiz data preserved; responsive styling and focus-mode controls attached.")
+          print(f"HTML bytes: {html_path.stat().st_size}; CSS bytes: {css_path.stat().st_size}; JS bytes: {js_path.stat().st_size}")
           PY
 
-      # assembleDebug automatically signs the APK with Android's debug key,
-      # making it installable without configuring a private release keystore.
       - name: Build installable debug APK
         run: gradle --no-daemon clean assembleDebug
 
