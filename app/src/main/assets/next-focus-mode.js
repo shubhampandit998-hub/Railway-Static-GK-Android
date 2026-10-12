@@ -1,36 +1,88 @@
-/* Keep the existing Save/Bookmark control visible across question renders.
-   Do not modify MCQ click handlers, answer evaluation, or quiz data. */
+/* Keep the existing Saved Questions / Save control visible across all quiz screens.
+   Preserve its original click action and all quiz data and answer logic. */
 (function () {
   "use strict";
 
-  var saveSelector = "button, a, [role='button'], input[type='button'], input[type='submit']";
+  var controls = "button, a, [role='button'], input[type='button'], input[type='submit']";
+  var saveWords = /saved?\s*questions?|bookmark|favourites?|favorites?/i;
 
-  function labelOf(el) {
-    return (el.innerText || el.value || el.getAttribute("aria-label") ||
-      el.getAttribute("title") || el.getAttribute("data-title") || "").replace(/\s+/g, " ").trim();
+  function textOf(el) {
+    return [
+      el.innerText,
+      el.value,
+      el.getAttribute("aria-label"),
+      el.getAttribute("title"),
+      el.getAttribute("data-title"),
+      el.id,
+      typeof el.className === "string" ? el.className : ""
+    ].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
   }
 
-  function ensureSaveVisible() {
-    document.querySelectorAll(saveSelector).forEach(function (el) {
-      var label = labelOf(el);
-      var isSave = /save|saved|bookmark|favourite|favorite|☆|★|⭐|\*/i.test(label);
-      if (!isSave) return;
+  function isSavedControl(el) {
+    var text = textOf(el);
+    if (saveWords.test(text)) return true;
+    /* Also recognize a star-only save control, but not arbitrary buttons. */
+    return /(?:^|\s)(?:\*|☆|★|⭐)(?:\s|$)/.test(text) &&
+      /save|saved|bookmark|question/i.test(text);
+  }
+
+  function setIfDifferent(el, prop, value) {
+    if (el.style.getPropertyValue(prop) !== value) {
+      el.style.setProperty(prop, value, "important");
+    }
+  }
+
+  function ensureSavedControlVisible() {
+    document.querySelectorAll(controls).forEach(function (el) {
+      if (!isSavedControl(el)) return;
+
       el.hidden = false;
       el.removeAttribute("hidden");
       el.removeAttribute("aria-hidden");
-      el.style.setProperty("display", "inline-flex", "important");
-      el.style.setProperty("visibility", "visible", "important");
-      el.style.setProperty("opacity", "1", "important");
+      setIfDifferent(el, "display", "inline-flex");
+      setIfDifferent(el, "visibility", "visible");
+      setIfDifferent(el, "opacity", "1");
+
+      /* If a surrounding wrapper itself is hidden, reveal that wrapper too. */
+      var parent = el.parentElement;
+      var depth = 0;
+      while (parent && parent !== document.body && depth < 5) {
+        if (parent.hidden || parent.hasAttribute("hidden") ||
+            parent.getAttribute("aria-hidden") === "true" ||
+            getComputedStyle(parent).display === "none" ||
+            getComputedStyle(parent).visibility === "hidden") {
+          parent.hidden = false;
+          parent.removeAttribute("hidden");
+          parent.removeAttribute("aria-hidden");
+          if (getComputedStyle(parent).display === "none") {
+            setIfDifferent(parent, "display", "block");
+          }
+          if (getComputedStyle(parent).visibility === "hidden") {
+            setIfDifferent(parent, "visibility", "visible");
+          }
+        }
+        parent = parent.parentElement;
+        depth++;
+      }
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", ensureSaveVisible);
-  } else {
-    ensureSaveVisible();
+  function scheduleCheck() {
+    ensureSavedControlVisible();
   }
 
-  /* Re-apply visibility when the app redraws the question or attempting panel. */
-  var observer = new MutationObserver(ensureSaveVisible);
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "style", "aria-hidden"] });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", scheduleCheck);
+  } else {
+    scheduleCheck();
+  }
+
+  /* Re-check after quiz navigation or any panel re-render. */
+  var observer = new MutationObserver(scheduleCheck);
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["hidden", "style", "aria-hidden", "class"]
+  });
 })();
